@@ -1,0 +1,20 @@
+{
+  "name": "bridge",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "bc-bridge.js",
+  "scripts": {
+    "start": "node ./bc-bridge.js"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.1",
+    "node-fetch": "^3.3.2",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
+  }
+}
