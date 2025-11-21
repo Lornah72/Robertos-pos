@@ -17,8 +17,9 @@ dotenv.config();
 /* ------------------------ Basic app + HTTP + Socket.IO ------------------------ */
 
 const app = express();
-const PORT = Number(process.env.BRIDGE_PORT || process.env.PORT || 5050);
+const PORT = process.env.PORT || process.env.BRIDGE_PORT || 5050;
 const PRINTER_WS_URL = process.env.PRINTER_WS_URL || "http://localhost:4000";
+
 
 // CORS: allow any http://localhost:* origin (for Vite dev ports)
 const corsOriginFn = (origin, cb) => {

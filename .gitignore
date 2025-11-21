@@ -31,5 +31,9 @@ project/**/.env
 data/
 project/bridge/data/
 
-# PDFs / temp files
+project/printer/*.pdf
 *.pdf
+
+# Node / build stuff
+node_modules/
+dist/
