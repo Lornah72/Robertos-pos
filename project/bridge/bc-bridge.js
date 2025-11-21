@@ -19,6 +19,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || process.env.BRIDGE_PORT || 5050;
 const PRINTER_WS_URL = process.env.PRINTER_WS_URL || "http://localhost:4000";
+const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 
 
 // CORS: allow any http://localhost:* origin (for Vite dev ports)
@@ -71,7 +72,7 @@ connectPrinter();
 
 /* ------------------------ Auth (DEV: plain passwords) ------------------------ */
 
-const JWT_SECRET = process.env.JWT_SECRET || "change-me-dev";
+
 
 const USERS = [
   {
@@ -115,54 +116,46 @@ function requireAuth(req, res, next) {
   }
 }
 
-// LOGIN
 app.post("/auth/login", (req, res) => {
   const { username, password } = req.body || {};
+  console.log("[auth] login attempt", username, password ? "****" : "(no password)");
 
-  console.log("[auth] login attempt body =", req.body);
+  // 🔐 Simple, hard-coded demo user
+  const VALID_USER = {
+    username: "admin",
+    password: "1234",
+    fullName: "Restaurant Admin",
+    role: "admin",
+  };
 
-  if (!username || !password) {
-    return res
-      .status(400)
-      .json({ ok: false, error: "Username and password are required" });
-  }
-
-  const normalized = String(username).trim().toLowerCase();
-  const u = USERS.find((x) => x.username.toLowerCase() === normalized);
-
-  if (!u || String(password) !== String(u.password)) {
-    console.warn(
-      "[auth] invalid credentials:",
-      "username=",
-      normalized,
-      "password=",
-      password
-    );
+  if (username !== VALID_USER.username || password !== VALID_USER.password) {
+    console.log("[auth] invalid credentials");
     return res
       .status(401)
-      .json({ ok: false, error: "Invalid username or password" });
+      .json({ ok: false, message: "Invalid username or password" });
   }
 
-  const token = issueToken(u);
+  // ✅ Create JWT so the frontend stays logged in
+  const token = jwt.sign(
+    { sub: VALID_USER.username, role: VALID_USER.role },
+    JWT_SECRET,
+    { expiresIn: "12h" }
+  );
 
-  res.cookie("sid", token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: false, // dev
-  });
+  console.log("[auth] login success for", username);
 
-  console.log("[auth] login ok for", u.username);
-
-  res.json({
+  return res.json({
     ok: true,
     user: {
-      id: u.id,
-      name: u.name,
-      role: u.role,
-      username: u.username,
+      username: VALID_USER.username,
+      fullName: VALID_USER.fullName,
+      role: VALID_USER.role,
     },
+    token,
   });
 });
+
+      
 
 // WHO AM I
 app.get("/auth/me", (req, res) => {
