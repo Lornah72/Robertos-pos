@@ -58,12 +58,41 @@ function requireAuth(req, res, next) { try { const tok = readToken(req); if (!to
 
 app.post("/auth/login", (req, res) => {
   const { username, password } = req.body || {};
-  const u = USERS.find(x => x.username === String(username || "").toLowerCase());
-  if (!u || String(password) !== String(u.password)) return res.status(401).json({ ok:false, error:"Invalid username or password" });
-  const token = issueToken(u);
-  res.cookie("sid", token, { httpOnly: true, sameSite: "lax" });
-  res.json({ ok:true, user: { id:u.id, name:u.name, role:u.role, username:u.username } });
+  console.log("[auth] login attempt", username, password ? "****" : "(no password)");
+
+  const user = USERS.find(
+    (u) => u.username === username && u.password === password
+  );
+  if (!user) {
+    console.log("[auth] invalid credentials");
+    return res
+      .status(401)
+      .json({ ok: false, message: "Invalid username or password" });
+  }
+
+  // 🔐 Use the common helper
+  const token = issueToken(user);
+
+  // optional but recommended: put token in cookie so requireAuth works automatically
+  res.cookie("sid", token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: false, // set true if you’re behind HTTPS only
+  });
+
+  console.log("[auth] login success for", username);
+
+  return res.json({
+    ok: true,
+    user: {
+      id: user.id,
+      name: user.name,
+      role: user.role,
+    },
+    token,
+  });
 });
+
 app.get("/auth/me", (req, res) => { try { const tok = readToken(req); if (!tok) return res.status(401).json({ ok:false }); const p = jwt.verify(tok, JWT_SECRET); res.json({ ok:true, user:{ id:p.uid, name:p.name, role:p.role } }); } catch { res.status(401).json({ ok:false }); } });
 app.post("/auth/logout", (req, res) => { res.clearCookie("sid"); res.json({ ok:true }); });
 
