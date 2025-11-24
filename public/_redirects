@@ -1,7 +1,5 @@
-/auth/*      https://parthenocarpic-ida-precoincidently.ngrok-free.dev/auth/:splat        200
-/bc/*        https://parthenocarpic-ida-precoincidently.ngrok-free.dev/bc/:splat          200
-/pos/*       https://parthenocarpic-ida-precoincidently.ngrok-free.dev/pos/:splat         200
-/pos/state   https://parthenocarpic-ida-precoincidently.ngrok-free.dev/pos/state         200
-/pos/snapshot https://parthenocarpic-ida-precoincidently.ngrok-free.dev/pos/snapshot     200
-/health      https://parthenocarpic-ida-precoincidently.ngrok-free.dev/health            200
-/socket.io/* https://parthenocarpic-ida-precoincidently.ngrok-free.dev/socket.io/:splat  200
+/auth/*      https://parthenocarpic-ida-precoincidently.ngrok-free.dev/auth/:splat      200
+/pos/*       https://parthenocarpic-ida-precoincidently.ngrok-free.dev/pos/:splat       200
+/bc/*        https://parthenocarpic-ida-precoincidently.ngrok-free.dev/bc/:splat        200
+/health      https://parthenocarpic-ida-precoincidently.ngrok-free.dev/health           200
+/socket.io/* https://parthenocarpic-ida-precoincidently.ngrok-free.dev/socket.io/:splat 200
