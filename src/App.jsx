@@ -527,7 +527,7 @@ useEffect(() => {
   };
 }, []);
 
-  const socketBase = API_BASE || window.location.origin;
+ 
 
 
 
