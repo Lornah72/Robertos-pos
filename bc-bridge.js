@@ -18,23 +18,35 @@ dotenv.config();
 const app = express();
 
 //* ------------------------ CORS (Netlify + local) ------------------------ */
+/* ------------------------ CORS (Netlify + local) ------------------------ */
 const allowedOrigins = [
-  "http://localhost:5173",            // dev
-  "https://posrobertos.netlify.app",  // Netlify production
+  "http://localhost:5173",
+  "https://posrobertos.netlify.app",
 ];
 
+// For now: reflect whatever Origin we get (and allow credentials).
+// This guarantees the preflight gets proper CORS headers.
 const corsOptions = {
   origin(origin, callback) {
-    // allow tools / curl with no Origin
+    // allow tools / curl / health checks with no Origin header
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error("Not allowed by CORS"));
+
+    // (optional) keep a warning in logs if it's not one of our expected sites
+    if (!allowedOrigins.includes(origin)) {
+      console.warn("[CORS] Unexpected origin:", origin);
+    }
+
+    // always allow – browser will get Access-Control-Allow-Origin
+    return callback(null, true);
   },
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
 
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));   // handle preflight
+app.options("*", cors(corsOptions)); // handle preflight
+
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
 app.use(cookieParser());
