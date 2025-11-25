@@ -60,41 +60,60 @@ app.post("/auth/login", (req, res) => {
   const { username, password } = req.body || {};
   console.log("[auth] login attempt", username, password ? "****" : "(no password)");
 
-  const user = USERS.find(
-    (u) => u.username === username && u.password === password
-  );
-  if (!user) {
+  // 🔐 Simple, hard-coded demo user
+  const VALID_USER = {
+    username: "admin",
+    password: "1234",
+    fullName: "Restaurant Admin",
+    role: "admin",
+  };
+
+  if (username !== VALID_USER.username || password !== VALID_USER.password) {
     console.log("[auth] invalid credentials");
     return res
       .status(401)
       .json({ ok: false, message: "Invalid username or password" });
   }
 
-  // 🔐 Use the common helper
-  const token = issueToken(user);
-
-  // optional but recommended: put token in cookie so requireAuth works automatically
-  res.cookie("sid", token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: false, // set true if you’re behind HTTPS only
-  });
+  // ✅ Create JWT
+  const token = jwt.sign(
+    { uid: VALID_USER.username, name: VALID_USER.fullName, role: VALID_USER.role },
+    JWT_SECRET,
+    { expiresIn: "7d" }
+  );
 
   console.log("[auth] login success for", username);
+
+  // 🔑 VERY IMPORTANT: set cookie for cross-origin (Netlify → Render)
+  res.cookie("sid", token, {
+    httpOnly: true,
+    secure: true,        // required for SameSite=None
+    sameSite: "None",    // allow cross-site XHR from Netlify to Render
+    path: "/",
+  });
 
   return res.json({
     ok: true,
     user: {
-      id: user.id,
-      name: user.name,
-      role: user.role,
+      id: VALID_USER.username,
+      name: VALID_USER.fullName,
+      role: VALID_USER.role,
     },
-    token,
   });
 });
 
+
 app.get("/auth/me", (req, res) => { try { const tok = readToken(req); if (!tok) return res.status(401).json({ ok:false }); const p = jwt.verify(tok, JWT_SECRET); res.json({ ok:true, user:{ id:p.uid, name:p.name, role:p.role } }); } catch { res.status(401).json({ ok:false }); } });
-app.post("/auth/logout", (req, res) => { res.clearCookie("sid"); res.json({ ok:true }); });
+app.post("/auth/logout", (req, res) => {
+  res.clearCookie("sid", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "None",
+    path: "/",
+  });
+  res.json({ ok: true });
+});
+
 
 /* ------------------------ Health ------------------------ */
 app.get("/health", (_req, res) => {

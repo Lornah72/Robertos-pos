@@ -480,14 +480,13 @@ function AuthedPOSApp({ user, onLogout }) {
   }, []);
 
   /* -------- Socket connect -------- */
-  useEffect(() => {
+useEffect(() => {
   const socketBase = API_BASE || window.location.origin;
-
   const s = io(socketBase, {
-    path: "/socket.io",
-    transports: ["websocket"],
-    withCredentials: true,
-  });
+      path: "/socket.io",
+      transports: ["websocket"],
+      withCredentials: true,
+    });
   socketRef.current = s;
 
   s.on("connect", () => setSocketOk(true));
@@ -1674,7 +1673,7 @@ function LoginScreen({ onLoggedIn }) {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className="border rounded-xl px-3 py-2"
-            placeholder="e.g., admin"
+            placeholder=""
           />
         </label>
         <label className="grid gap-1 mb-4 text-sm">
@@ -1690,7 +1689,7 @@ function LoginScreen({ onLoggedIn }) {
         <button className="w-full rounded-xl bg-slate-900 text-white py-2">
           Sign in
         </button>
-        <div className="text-xs text-slate-500 mt-3">Demo: admin / 1234</div>
+        <div className="text-xs text-slate-500 mt-3"></div>
       </form>
     </div>
   );
