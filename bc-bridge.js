@@ -19,34 +19,39 @@ const app = express();
 
 //* ------------------------ CORS (Netlify + local) ------------------------ */
 /* ------------------------ CORS (Netlify + local) ------------------------ */
+// ---------- CORS (Netlify + local) – manual, strict ----------
 const allowedOrigins = [
   "http://localhost:5173",
   "https://posrobertos.netlify.app",
 ];
 
-// For now: reflect whatever Origin we get (and allow credentials).
-// This guarantees the preflight gets proper CORS headers.
-const corsOptions = {
-  origin(origin, callback) {
-    // allow tools / curl / health checks with no Origin header
-    if (!origin) return callback(null, true);
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
 
-    // (optional) keep a warning in logs if it's not one of our expected sites
-    if (!allowedOrigins.includes(origin)) {
-      console.warn("[CORS] Unexpected origin:", origin);
-    }
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Vary", "Origin");
+    res.header("Access-Control-Allow-Credentials", "true");
+    res.header(
+      "Access-Control-Allow-Methods",
+      "GET,POST,PUT,DELETE,OPTIONS"
+    );
+    res.header(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization"
+    );
+  }
 
-    // always allow – browser will get Access-Control-Allow-Origin
-    return callback(null, true);
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-};
+  // Let preflight requests end here
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+
+  next();
+});
 
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions)); // handle preflight
-
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
 app.use(cookieParser());
