@@ -14,44 +14,37 @@ import { io as socketioClient } from "socket.io-client";
 
 dotenv.config();
 
-/* ------------------------ App + HTTP + Socket.IO ------------------------ */
+
+
 const app = express();
 
-//* ------------------------ CORS (Netlify + local) ------------------------ */
 /* ------------------------ CORS (Netlify + local) ------------------------ */
-// ---------- CORS (Netlify + local) – manual, strict ----------
+
 const allowedOrigins = [
   "http://localhost:5173",
   "https://posrobertos.netlify.app",
 ];
 
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
+const corsOptions = {
+  origin(origin, callback) {
+    // Allow tools/curl that have no Origin header
+    if (!origin) return callback(null, true);
 
-  if (origin && allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
-    res.header("Vary", "Origin");
-    res.header("Access-Control-Allow-Credentials", "true");
-    res.header(
-      "Access-Control-Allow-Methods",
-      "GET,POST,PUT,DELETE,OPTIONS"
-    );
-    res.header(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization"
-    );
-  }
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
 
-  // Let preflight requests end here
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
-
-  next();
-});
+    console.warn("[CORS] Blocked origin:", origin);
+    return callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
 
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions)); // handle preflight
+app.options("*", cors(corsOptions)); // preflight
+
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
 app.use(cookieParser());
