@@ -23,30 +23,32 @@ import {
 } from "lucide-react";
 // ========================= Bridge API helper =========================
 // Put this near the top of App.jsx, after the imports
-// ========================= Bridge API helper =========================
-// Base URL of the Node bridge (set on Netlify / .env.local)
+
+// Base URL of the bridge.
+// - In dev: leave VITE_BRIDGE_URL empty → calls go to http://localhost:5050
+// - In prod (Netlify): set VITE_BRIDGE_URL to "https://pos-bridge.onrender.com"
 const BRIDGE_URL = import.meta.env.VITE_BRIDGE_URL || "";
 
-// Build full URL to the bridge
-export function bridgeUrl(p) {
-  // If no env is set (local dev with proxy / same origin), just return the path
-  if (!BRIDGE_URL) return p;
-  if (p.startsWith("http")) return p;
-  return `${BRIDGE_URL}${p}`;
+// Build a full URL to the bridge
+export function bridgeUrl(path) {
+  if (!BRIDGE_URL) return path;              // dev mode → relative URL
+  if (path.startsWith("http")) return path;  // already full
+  return `${BRIDGE_URL}${path}`;
 }
 
-// Generic fetch helper that always talks to the bridge
-const apiFetch = (path, options = {}) => {
-  const url = bridgeUrl(path);
-  return fetch(url, {
-    credentials: "include", // send cookies/session
-    ...options,
+// Small convenience wrapper for fetch that always goes via the bridge
+export function apiFetch(path, options = {}) {
+  return fetch(bridgeUrl(path), {
+    credentials: options.credentials ?? "include",
     headers: {
       "Content-Type": "application/json",
       ...(options.headers || {}),
     },
+    ...options,
   });
-};
+}
+
+
 
 /* ========================= UI helpers ========================= */
 const Badge = ({ children, intent = "default" }) => (
