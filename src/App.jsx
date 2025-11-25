@@ -23,22 +23,23 @@ import {
 } from "lucide-react";
 // ========================= Bridge API helper =========================
 // Put this near the top of App.jsx, after the imports
+// ========================= Bridge API helper =========================
+// Base URL of the Node bridge (set on Netlify / .env.local)
 const BRIDGE_URL = import.meta.env.VITE_BRIDGE_URL || "";
 
-// Helper: build full URL to the bridge
-function bridgeUrl(p) {
-  if (!BRIDGE_URL) return p;               // dev: same origin (localhost:5050)
-  if (p.startsWith("http")) return p;      // already full URL
+// Build full URL to the bridge
+export function bridgeUrl(p) {
+  // If no env is set (local dev with proxy / same origin), just return the path
+  if (!BRIDGE_URL) return p;
+  if (p.startsWith("http")) return p;
   return `${BRIDGE_URL}${p}`;
 }
 
-const BRIDGE_BASE = import.meta.env.VITE_BRIDGE_URL || "";
-
+// Generic fetch helper that always talks to the bridge
 const apiFetch = (path, options = {}) => {
-  const url = BRIDGE_BASE ? `${BRIDGE_BASE}${path}` : path;
+  const url = bridgeUrl(path);
   return fetch(url, {
-    // allow cookies / sid
-    credentials: "include",
+    credentials: "include", // send cookies/session
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -47,12 +48,6 @@ const apiFetch = (path, options = {}) => {
   });
 };
 
-const API_BASE = import.meta.env.VITE_BRIDGE_URL || "";
-
-  fetch(`${API_BASE}${path}`, {
-    ...options,
-    credentials: options.credentials ?? "include",
-  });
 /* ========================= UI helpers ========================= */
 const Badge = ({ children, intent = "default" }) => (
   <span
@@ -505,14 +500,13 @@ function AuthedPOSApp({ user, onLogout }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* -------- Socket connect -------- */
+/* -------- Socket connect -------- */
 useEffect(() => {
-  const socketBase = API_BASE || window.location.origin;
-  const s = io(BRIDGE_URL || "/", {
-  path: "/socket.io",
-  transports: ["websocket"],
-  withCredentials: true,
-});
+  const s = io(BRIDGE_URL || window.location.origin, {
+    path: "/socket.io",
+    transports: ["websocket"],
+    withCredentials: true,
+  });
   socketRef.current = s;
 
   s.on("connect", () => setSocketOk(true));
@@ -530,6 +524,9 @@ useEffect(() => {
     socketRef.current = null;
   };
 }, []);
+
+  const socketBase = API_BASE || window.location.origin;
+
 
 
   /* -------- Poll printer status from bridge -------- */
