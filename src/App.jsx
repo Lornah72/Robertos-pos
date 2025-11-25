@@ -21,7 +21,12 @@ import {
   AlertTriangle,
   Trash2,
 } from "lucide-react";
-
+const API_BASE = import.meta.env.VITE_BRIDGE_URL || "";
+const apiFetch = (path, options = {}) =>
+  fetch(`${API_BASE}${path}`, {
+    ...options,
+    credentials: options.credentials ?? "include",
+  });
 /* ========================= UI helpers ========================= */
 const Badge = ({ children, intent = "default" }) => (
   <span
@@ -303,7 +308,7 @@ export default function POSApp() {
   useEffect(() => {
     (async () => {
       try {
-        const r = await fetch("/auth/me", { credentials: "include" });
+        const r = await apiFetch("/auth/me");
         if (r.ok) {
           const j = await r.json();
           setUser(j.user);
@@ -367,7 +372,7 @@ function AuthedPOSApp({ user, onLogout }) {
   useEffect(() => {
     (async () => {
       try {
-        const r = await fetch("/pos/state", { credentials: "include" });
+        const r = await apiFetch("/pos/state");
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const s = await r.json();
         setTables(s.tables || initialTables);
@@ -385,7 +390,7 @@ function AuthedPOSApp({ user, onLogout }) {
       setLoadingMenu(true);
       setMenuError("");
       try {
-        let r = await fetch("/bc/menu", { credentials: "include" });
+        let r = await apiFetch("/bc/menu");
         let items = [];
         let cats = [];
 
@@ -400,7 +405,7 @@ function AuthedPOSApp({ user, onLogout }) {
           }
         } else if (r.status === 404) {
           // Fallback: /bc/items
-          r = await fetch("/bc/items", { credentials: "include" });
+          r = await apiFetch("/bc/items");
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
           const raw = await r.json();
           const bcItems = Array.isArray(raw)
@@ -430,7 +435,7 @@ function AuthedPOSApp({ user, onLogout }) {
         // Fetch live stock (best-effort)
         let stockMap = {};
         try {
-          const s = await fetch("/bc/stock", { credentials: "include" });
+          const s = await apiFetch("/bc/stock");
           if (s.ok) stockMap = await s.json();
         } catch (e) {
           console.warn("BC stock error:", e);
@@ -476,35 +481,38 @@ function AuthedPOSApp({ user, onLogout }) {
 
   /* -------- Socket connect -------- */
   useEffect(() => {
-    const s = io("/", {
-      path: "/socket.io",
-      transports: ["websocket"],
-      withCredentials: true,
-    });
-    socketRef.current = s;
+  const socketBase = API_BASE || window.location.origin;
 
-    s.on("connect", () => setSocketOk(true));
-    s.on("disconnect", () => setSocketOk(false));
+  const s = io(socketBase, {
+    path: "/socket.io",
+    transports: ["websocket"],
+    withCredentials: true,
+  });
+  socketRef.current = s;
 
-    s.on("pos/state", (snap) => {
-      if (snap?.tables) setTables(snap.tables);
-      if (snap?.tickets) setTickets(snap.tickets);
-    });
+  s.on("connect", () => setSocketOk(true));
+  s.on("disconnect", () => setSocketOk(false));
 
-    s.on("print-status", (m) => console.log("Print status:", m));
+  s.on("pos/state", (snap) => {
+    if (snap?.tables) setTables(snap.tables);
+    if (snap?.tickets) setTickets(snap.tickets);
+  });
 
-    return () => {
-      s.close();
-      socketRef.current = null;
-    };
-  }, []);
+  s.on("print-status", (m) => console.log("Print status:", m));
+
+  return () => {
+    s.close();
+    socketRef.current = null;
+  };
+}, []);
+
 
   /* -------- Poll printer status from bridge -------- */
   useEffect(() => {
     let stop = false;
     async function ping() {
       try {
-        const r = await fetch("/health", { credentials: "include" });
+        const r = await apiFetch("/health");
         if (r.ok) {
           const j = await r.json();
           if (!stop) setPrinterConnected(!!j.printerConnected || socketOk);
@@ -623,11 +631,11 @@ function AuthedPOSApp({ user, onLogout }) {
     };
 
     try {
-      const r = await fetch("/pos/ticket", {
+      const r = await apiFetch("/pos/ticket", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify(ticket),
+  
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       alert(`Order sent to KDS & printer (items: ${cart.length})`);
@@ -746,7 +754,7 @@ function AuthedPOSApp({ user, onLogout }) {
   /* -------- Stock refresh from BC -------- */
   async function refreshStockIntoMenu() {
     try {
-      const s = await fetch("/bc/stock", { credentials: "include" });
+      const s = await apiFetch("/bc/stock");
       if (!s.ok) return;
       const stockMap = await s.json();
       setMenu((prev) =>
@@ -967,12 +975,11 @@ function AuthedPOSApp({ user, onLogout }) {
   useEffect(() => {
     if (pushSnapshotRef.current) clearTimeout(pushSnapshotRef.current);
     pushSnapshotRef.current = setTimeout(() => {
-      fetch("/pos/snapshot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ tables, tickets }),
-      }).catch((e) => console.warn("snapshot save failed:", e));
+      apiFetch("/pos/snapshot", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tables, tickets }),
+  }).catch((e) => console.warn("snapshot save failed:", e));
     }, 250);
     return () => clearTimeout(pushSnapshotRef.current);
   }, [tables, tickets]);
@@ -1634,15 +1641,14 @@ function LoginScreen({ onLoggedIn }) {
     e.preventDefault();
     setErr("");
     try {
-      const r = await fetch("/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          username: username.trim().toLowerCase(),
-          password,
-        }),
-      });
+      const r = await apiFetch("/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      username: username.trim().toLowerCase(),
+      password,
+    }),
+  });
       if (!r.ok) {
         const t = await r.text();
         throw new Error(t || `HTTP ${r.status}`);
