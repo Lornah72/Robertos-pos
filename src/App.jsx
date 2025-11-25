@@ -27,7 +27,13 @@ import {
 // Base URL of the bridge.
 // - In dev: leave VITE_BRIDGE_URL empty → calls go to http://localhost:5050
 // - In prod (Netlify): set VITE_BRIDGE_URL to "https://pos-bridge.onrender.com"
-const BRIDGE_URL = import.meta.env.VITE_BRIDGE_URL || "";
+
+const BRIDGE_URL =
+  import.meta.env.VITE_BRIDGE_URL ||
+  (window.location.hostname.endsWith("netlify.app")
+    ? "https://robertos-pos.onrender.com"   // Render bridge
+    : "http://localhost:5050");             // Local dev
+
 
 // Build a full URL to the bridge
 export function bridgeUrl(path) {
