@@ -28,21 +28,31 @@ import {
 // - In dev: leave VITE_BRIDGE_URL empty → calls go to http://localhost:5050
 // - In prod (Netlify): set VITE_BRIDGE_URL to "https://pos-bridge.onrender.com"
 
-const BRIDGE_URL =
+// ========================= Bridge API helper =========================
+
+const RAW_BRIDGE_URL =
   import.meta.env.VITE_BRIDGE_URL ||
   (window.location.hostname.endsWith("netlify.app")
-    ? "https://robertos-pos.onrender.com"   // Render bridge
-    : "http://localhost:5050");             // Local dev
+    ? "https://robertos-pos.onrender.com"
+    : "http://localhost:5050");
 
+// strip any trailing slashes, so "https://x.com/" -> "https://x.com"
+const BRIDGE_URL = RAW_BRIDGE_URL.replace(/\/+$/, "");
 
 // Build a full URL to the bridge
 export function bridgeUrl(path) {
-  if (!BRIDGE_URL) return path;              // dev mode → relative URL
-  if (path.startsWith("http")) return path;  // already full
-  return `${BRIDGE_URL}${path}`;
+  // if someone passes a full URL, leave it alone
+  if (path.startsWith("http")) return path;
+
+  // ensure path starts with a single leading slash
+  const p = path.startsWith("/") ? path : `/${path}`;
+
+  // dev mode (no bridge url) – use relative path
+  if (!BRIDGE_URL) return p;
+
+  return `${BRIDGE_URL}${p}`; // now always "https://.../auth/login"
 }
 
-// Small convenience wrapper for fetch that always goes via the bridge
 export function apiFetch(path, options = {}) {
   return fetch(bridgeUrl(path), {
     credentials: options.credentials ?? "include",
@@ -53,8 +63,6 @@ export function apiFetch(path, options = {}) {
     ...options,
   });
 }
-
-
 
 /* ========================= UI helpers ========================= */
 const Badge = ({ children, intent = "default" }) => (
