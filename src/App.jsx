@@ -21,8 +21,24 @@ import {
   AlertTriangle,
   Trash2,
 } from "lucide-react";
+// ========================= Bridge API helper =========================
+const BRIDGE_BASE = import.meta.env.VITE_BRIDGE_URL || "";
+
+const apiFetch = (path, options = {}) => {
+  const url = BRIDGE_BASE ? `${BRIDGE_BASE}${path}` : path;
+  return fetch(url, {
+    // allow cookies / sid
+    credentials: "include",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+  });
+};
+
 const API_BASE = import.meta.env.VITE_BRIDGE_URL || "";
-const apiFetch = (path, options = {}) =>
+
   fetch(`${API_BASE}${path}`, {
     ...options,
     credentials: options.credentials ?? "include",
@@ -1640,14 +1656,17 @@ function LoginScreen({ onLoggedIn }) {
     e.preventDefault();
     setErr("");
     try {
-      const r = await apiFetch("/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      username: username.trim().toLowerCase(),
-      password,
-    }),
-  });
+  
+  const r = await fetch("/auth/login", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  credentials: "include",
+  body: JSON.stringify({
+    username: username.trim().toLowerCase(),
+    password,
+  }),
+});
+
       if (!r.ok) {
         const t = await r.text();
         throw new Error(t || `HTTP ${r.status}`);
