@@ -101,6 +101,22 @@ app.post("/auth/login", (req, res) => {
     },
   });
 });
+const allowedOrigins = [
+  "http://localhost:5173",              // dev
+  "https://posrobertos.netlify.app",    // Netlify production
+];
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Allow REST tools / curl with no origin
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true, // very important since you use cookies/session
+  })
+);
 
 
 app.get("/auth/me", (req, res) => { try { const tok = readToken(req); if (!tok) return res.status(401).json({ ok:false }); const p = jwt.verify(tok, JWT_SECRET); res.json({ ok:true, user:{ id:p.uid, name:p.name, role:p.role } }); } catch { res.status(401).json({ ok:false }); } });
