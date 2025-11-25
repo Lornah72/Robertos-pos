@@ -17,7 +17,7 @@ dotenv.config();
 /* ------------------------ App + HTTP + Socket.IO ------------------------ */
 const app = express();
 
-/* ------------------------ CORS (Netlify + local) ------------------------ */
+//* ------------------------ CORS (Netlify + local) ------------------------ */
 const allowedOrigins = [
   "http://localhost:5173",            // dev
   "https://posrobertos.netlify.app",  // Netlify production
@@ -39,12 +39,13 @@ app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
 app.use(cookieParser());
 
+
 const PORT = Number(process.env.BRIDGE_PORT || process.env.PORT || 5050);
 const PRINTER_WS_URL = process.env.PRINTER_WS_URL || "http://localhost:4000";
 
 const server = http.createServer(app);
 const io = new SocketIOServer(server, {
-  cors: { origin: true, credentials: true },
+  cors: { origin: allowedOrigins, credentials: true },
   path: "/socket.io",
 });
 
