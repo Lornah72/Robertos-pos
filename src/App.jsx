@@ -22,6 +22,16 @@ import {
   Trash2,
 } from "lucide-react";
 // ========================= Bridge API helper =========================
+// Put this near the top of App.jsx, after the imports
+const BRIDGE_URL = import.meta.env.VITE_BRIDGE_URL || "";
+
+// Helper: build full URL to the bridge
+function bridgeUrl(p) {
+  if (!BRIDGE_URL) return p;               // dev: same origin (localhost:5050)
+  if (p.startsWith("http")) return p;      // already full URL
+  return `${BRIDGE_URL}${p}`;
+}
+
 const BRIDGE_BASE = import.meta.env.VITE_BRIDGE_URL || "";
 
 const apiFetch = (path, options = {}) => {
@@ -324,7 +334,7 @@ export default function POSApp() {
   useEffect(() => {
     (async () => {
       try {
-        const r = await apiFetch("/auth/me");
+        const r = await fetch(bridgeUrl("/auth/me"), { credentials: "include" });
         if (r.ok) {
           const j = await r.json();
           setUser(j.user);
@@ -388,7 +398,7 @@ function AuthedPOSApp({ user, onLogout }) {
   useEffect(() => {
     (async () => {
       try {
-        const r = await apiFetch("/pos/state");
+        const r = await fetch(bridgeUrl("/pos/state"), { credentials: "include" });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const s = await r.json();
         setTables(s.tables || initialTables);
@@ -406,7 +416,7 @@ function AuthedPOSApp({ user, onLogout }) {
       setLoadingMenu(true);
       setMenuError("");
       try {
-        let r = await apiFetch("/bc/menu");
+        let r = await fetch(bridgeUrl("/bc/menu"), { credentials: "include" });
         let items = [];
         let cats = [];
 
@@ -421,7 +431,7 @@ function AuthedPOSApp({ user, onLogout }) {
           }
         } else if (r.status === 404) {
           // Fallback: /bc/items
-          r = await apiFetch("/bc/items");
+          r = await fetch(bridgeUrl("/bc/items"), { credentials: "include" });
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
           const raw = await r.json();
           const bcItems = Array.isArray(raw)
@@ -451,7 +461,7 @@ function AuthedPOSApp({ user, onLogout }) {
         // Fetch live stock (best-effort)
         let stockMap = {};
         try {
-          const s = await apiFetch("/bc/stock");
+          const s = await fetch(bridgeUrl("/bc/stock"), { credentials: "include" });
           if (s.ok) stockMap = await s.json();
         } catch (e) {
           console.warn("BC stock error:", e);
@@ -498,11 +508,11 @@ function AuthedPOSApp({ user, onLogout }) {
   /* -------- Socket connect -------- */
 useEffect(() => {
   const socketBase = API_BASE || window.location.origin;
-  const s = io(socketBase, {
-      path: "/socket.io",
-      transports: ["websocket"],
-      withCredentials: true,
-    });
+  const s = io(BRIDGE_URL || "/", {
+  path: "/socket.io",
+  transports: ["websocket"],
+  withCredentials: true,
+});
   socketRef.current = s;
 
   s.on("connect", () => setSocketOk(true));
@@ -527,7 +537,7 @@ useEffect(() => {
     let stop = false;
     async function ping() {
       try {
-        const r = await apiFetch("/health");
+        const r = await fetch(bridgeUrl("/health"), { credentials: "include" });
         if (r.ok) {
           const j = await r.json();
           if (!stop) setPrinterConnected(!!j.printerConnected || socketOk);
@@ -646,7 +656,7 @@ useEffect(() => {
     };
 
     try {
-      const r = await apiFetch("/pos/ticket", {
+      const r = await fetch(bridgeUrl("/pos/ticket"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(ticket),
@@ -745,12 +755,12 @@ useEffect(() => {
         },
       };
 
-      const r = await fetch("/bc/invoice?post=true", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
+      const r = await fetch(bridgeUrl("/bc/invoice?post=true"), {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  credentials: "include",
+  body: JSON.stringify(payload),
+});
 
       if (!r.ok) {
         const text = await r.text();
@@ -990,7 +1000,7 @@ useEffect(() => {
   useEffect(() => {
     if (pushSnapshotRef.current) clearTimeout(pushSnapshotRef.current);
     pushSnapshotRef.current = setTimeout(() => {
-      apiFetch("/pos/snapshot", {
+      fetch(bridgeUrl("/pos/snapshot"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ tables, tickets }),
@@ -1090,10 +1100,10 @@ const screens = [
             className="text-rose-600 underline"
             onClick={async () => {
               try {
-                await fetch("/auth/logout", {
-                  method: "POST",
-                  credentials: "include",
-                });
+                await fetch(bridgeUrl("/auth/logout"), {
+                method: "POST",
+                credentials: "include",
+              });
               } catch {}
               sessionStorage.clear();
               onLogout();
@@ -1657,7 +1667,7 @@ function LoginScreen({ onLoggedIn }) {
     setErr("");
     try {
   
-  const r = await fetch("/auth/login", {
+  const r = await fetch(bridgeUrl("/auth/login"), {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   credentials: "include",
